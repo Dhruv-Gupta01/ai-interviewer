@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Interview</title>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs/loader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1c1c1e;
+      --surface2: #2c2c2e;
+      --border: #3a3a3c;
+      --text: #f5f5f7;
+      --text-muted: #8e8e93;
+      --accent: #0a84ff;
+      --green: #30d158;
+      --red: #ff453a;
+      --yellow: #ffd60a;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── SCREENS ─────────────────────────────────────────── */
+    .screen { display: none; width: 100%; height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ─── SETUP SCREEN ─────────────────────────────────── */
+    #setup {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      background: radial-gradient(ellipse at 50% 0%, #1a1a2e 0%, var(--bg) 70%);
+      padding: 2rem;
+    }
+
+    .setup-card {
+      width: 100%;
+      max-width: 580px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .setup-card h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .setup-card .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.4rem;
+    }
+
+    .form-group select,
+    .form-group textarea,
+    .form-group input {
+      width: 100%;
+      padding: 0.65rem 0.8rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group select:focus,
+    .form-group textarea:focus,
+    .form-group input:focus {
+      border-color: var(--accent);
+    }
+
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-group select option {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .jd-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    /* ─── RESUME UPLOAD ─────────────────────────── */
+    .resume-drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .resume-drop-zone:hover,
+    .resume-drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(10, 132, 255, 0.05);
+    }
+
+    .resume-drop-zone .drop-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .resume-drop-zone .drop-label span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .resume-status {
+      font-size: 0.78rem;
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    .resume-status.success { color: var(--green); }
+    .resume-status.error   { color: var(--red); }
+    .resume-status.loading { color: var(--text-muted); }
+
+    #setupBtn {
+      width: 100%;
+      padding: 0.85rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      transition: all 0.2s;
+      margin-top: 0.5rem;
+    }
+
+    #setupBtn:hover { background: #0071e3; }
+
+    /* ─── LOBBY SCREEN ─────────────────────────────────────── */
+    #lobby {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      background: radial-gradient(ellipse at 50% 0%, #1a1a2e 0%, var(--bg) 70%);
+    }
+
+    .lobby-title {
+      text-align: center;
+    }
+
+    .lobby-title h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .lobby-title p {
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    .preview-container {
+      position: relative;
+      width: 420px;
+      aspect-ratio: 16/9;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    #previewVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .preview-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      flex-direction: column;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .preview-overlay .camera-icon {
+      font-size: 2.5rem;
+      opacity: 0.4;
+    }
+
+    .checks {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      padding: 0.4rem 0.8rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .check-item.ok { color: var(--green); border-color: #1a3a20; background: #0a2010; }
+    .check-item.fail { color: var(--red); border-color: #3a1010; background: #200808; }
+
+    .check-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    #joinBtn {
+      padding: 0.85rem 3rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      transition: all 0.2s;
+      letter-spacing: 0.2px;
+    }
+
+    #joinBtn:hover:not(:disabled) { background: #0071e3; transform: scale(1.02); }
+    #joinBtn:disabled { background: var(--surface2); color: var(--text-muted); cursor: not-allowed; }
+
+    /* ─── INTERVIEW ROOM ───────────────────────────────────── */
+    #room {
+      flex-direction: column;
+      background: #000;
+    }
+
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.25rem;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .top-bar .title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+
+    .timer {
+      font-size: 1rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      background: var(--surface);
+      padding: 0.3rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .timer.warning { color: var(--yellow); border-color: #3a2e00; }
+    .timer.critical { color: var(--red); border-color: #3a0a00; }
+
+    /* Main video area */
+    .video-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 8px;
+      min-height: 0;
+    }
+
+    /* DSA mode: code editor takes right 60%, videos stack on left 40% */
+    .video-grid.dsa-mode {
+      grid-template-columns: 1fr 1.5fr;
+      grid-template-rows: 1fr 1fr;
+    }
+
+    .video-grid.dsa-mode .avatar-tile {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .video-grid.dsa-mode .candidate-tile {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .video-grid.dsa-mode .code-tile {
+      grid-column: 2;
+      grid-row: 1 / -1;
+    }
+
+    .video-tile {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    /* ─── CODE EDITOR TILE ─────────────────────────────── */
+    .code-tile {
+      display: none;
+      flex-direction: column;
+      background: #1e1e1e;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .code-tile.visible {
+      display: flex;
+    }
+
+    .code-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.4rem 0.8rem;
+      background: #2d2d2d;
+      border-bottom: 1px solid #404040;
+      flex-shrink: 0;
+    }
+
+    .code-toolbar select {
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: var(--text);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .code-toolbar .toolbar-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    #monacoContainer {
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ─── WHITEBOARD MODE (System Design) ─────────────── */
+    .video-grid.whiteboard-mode {
+      grid-template-columns: 1fr 1.5fr;
+      grid-template-rows: 1fr 1fr;
+    }
+
+    .video-grid.whiteboard-mode .avatar-tile {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .video-grid.whiteboard-mode .candidate-tile {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .video-grid.whiteboard-mode .whiteboard-tile {
+      grid-column: 2;
+      grid-row: 1 / -1;
+    }
+
+    .whiteboard-tile {
+      display: none;
+      flex-direction: column;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .whiteboard-tile.visible {
+      display: flex;
+    }
+
+    .wb-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.6rem;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ddd;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .wb-toolbar .toolbar-label {
+      font-size: 0.7rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      margin-right: 0.3rem;
+    }
+
+    .wb-tool-btn {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      transition: all 0.15s;
+    }
+
+    .wb-tool-btn:hover { background: #e8e8e8; }
+    .wb-tool-btn.active { background: #0a84ff; color: #fff; border-color: #0a84ff; }
+
+    .wb-separator {
+      width: 1px;
+      height: 20px;
+      background: #ddd;
+      margin: 0 0.2rem;
+    }
+
+    .wb-color-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .wb-color-btn.active { border-color: #0a84ff; }
+    .wb-color-btn:hover { border-color: #999; }
+
+    .wb-stroke-select {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 0.15rem 0.3rem;
+      font-size: 0.75rem;
+      color: #333;
+      outline: none;
+    }
+
+    #whiteboardCanvas {
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* AI Avatar tile */
+    .avatar-tile {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    .avatar-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .avatar-circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0a84ff, #5e5ce6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      position: relative;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .avatar-circle.speaking {
+      box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.3),
+                  0 0 0 8px rgba(10, 132, 255, 0.15),
+                  0 0 0 14px rgba(10, 132, 255, 0.05);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .avatar-circle.thinking {
+      box-shadow: 0 0 0 4px rgba(255, 214, 10, 0.3),
+                  0 0 0 8px rgba(255, 214, 10, 0.1);
+      animation: pulse-slow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .avatar-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .avatar-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-dot.listening { background: var(--green); animation: blink 1.5s ease infinite; }
+    .status-dot.speaking { background: var(--accent); animation: blink 0.8s ease infinite; }
+    .status-dot.thinking { background: var(--yellow); animation: blink 1s ease infinite; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Candidate tile */
+    #candidateVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .tile-label {
+      position: absolute;
+      bottom: 10px;
+      left: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: white;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+    }
+
+    /* Transcript overlay */
+    .transcript-overlay {
+      position: absolute;
+      bottom: 10px;
+      left: 12px;
+      right: 12px;
+      max-height: 80px;
+      overflow: hidden;
+    }
+
+    .transcript-bubble {
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      border-radius: 8px;
+      padding: 0.4rem 0.7rem;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      color: white;
+      display: none;
+    }
+
+    .transcript-bubble.visible { display: block; }
+    .transcript-bubble.partial { color: #aaa; font-style: italic; }
+
+    /* Bottom controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px);
+      flex-shrink: 0;
+    }
+
+    .ctrl-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .ctrl-btn:hover { background: var(--border); transform: scale(1.05); }
+    .ctrl-btn.active { background: var(--surface2); }
+    .ctrl-btn.muted { background: var(--red); }
+    .ctrl-btn.end-call { background: var(--red); width: 60px; height: 60px; font-size: 1.5rem; }
+    .ctrl-btn.end-call:hover { background: #d70015; }
+
+    /* Conversation log */
+    .conversation-panel {
+      position: fixed;
+      right: 0;
+      top: 50px;
+      bottom: 80px;
+      width: 280px;
+      background: rgba(28,28,30,0.9);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      z-index: 20;
+    }
+
+    .conversation-panel.open { transform: translateX(0); }
+
+    .panel-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .panel-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .panel-messages::-webkit-scrollbar { width: 4px; }
+    .panel-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg {
+      padding: 0.5rem 0.7rem;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      max-width: 100%;
+    }
+
+    .msg.you {
+      background: var(--surface2);
+      align-self: flex-end;
+      color: var(--text);
+      border-bottom-right-radius: 3px;
+    }
+
+    .msg.ai {
+      background: rgba(10,132,255,0.15);
+      border: 1px solid rgba(10,132,255,0.2);
+      align-self: flex-start;
+      color: var(--text);
+      border-bottom-left-radius: 3px;
+    }
+
+    .msg-speaker {
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+      opacity: 0.6;
+    }
+
+    /* Notification toast */
+    .toast {
+      position: fixed;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-60px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      color: var(--text);
+      transition: transform 0.3s ease;
+      z-index: 100;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- ─── SETUP ──────────────────────────────────────── -->
+  <div id="setup" class="screen active">
+    <div class="setup-card">
+      <h1>Configure Interview</h1>
+      <p class="subtitle">Set up the role and parameters before the candidate joins</p>
+
+      <div class="form-group">
+        <label>Role</label>
+        <select id="roleSelect">
+          <option value="Intern">Intern</option>
+          <option value="SDE1" selected>SDE1 — Junior Engineer</option>
+          <option value="SDE2">SDE2 — Senior Engineer</option>
+          <option value="Staff">Staff Engineer</option>
+          <option value="Lead">Tech Lead</option>
+          <option value="QA">QA Engineer</option>
+          <option value="SDET">SDET</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Job Description</label>
+        <textarea id="jdInput" placeholder="Paste the job description here... Include responsibilities, requirements, and tech stack for best results."></textarea>
+        <div class="jd-hint">The AI will extract key skills and tailor questions to match this JD</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Interview Type</label>
+          <select id="typeSelect">
+            <option value="behavioral">Behavioral / HR</option>
+            <option value="dsa">DSA / Coding</option>
+            <option value="system-design">System Design</option>
+            <option value="domain-technical" selected>Domain Technical</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Duration</label>
+          <select id="durationSelect">
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45" selected>45 minutes</option>
+            <option value="60">60 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Resume <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">(optional — PDF or DOCX)</span></label>
+        <div class="resume-drop-zone" id="resumeDropZone"
+             onclick="document.getElementById('resumeFileInput').click()"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleResumeDrop(event)">
+          <input type="file" id="resumeFileInput" accept=".pdf,.docx" style="display:none" onchange="handleResumeUpload(this.files[0])">
+          <div class="drop-label">&#128196; Drop file here or <span>click to browse</span></div>
+        </div>
+        <div class="resume-status" id="resumeStatus"></div>
+      </div>
+
+      <button id="setupBtn" onclick="goToLobby()">Continue to Lobby</button>
+    </div>
+  </div>
+
+  <!-- ─── LOBBY ──────────────────────────────────────── -->
+  <div id="lobby" class="screen">
+    <div class="lobby-title">
+      <h1>Ready to interview?</h1>
+      <p>Make sure your camera and microphone are working</p>
+    </div>
+
+    <div class="preview-container">
+      <div class="preview-overlay" id="cameraOverlay">
+        <span class="camera-icon">📷</span>
+        <span>Waiting for camera access...</span>
+      </div>
+      <video id="previewVideo" autoplay muted playsinline></video>
+    </div>
+
+    <div class="checks">
+      <div class="check-item" id="checkCamera">
+        <span class="check-dot"></span> Camera
+      </div>
+      <div class="check-item" id="checkMic">
+        <span class="check-dot"></span> Microphone
+      </div>
+      <div class="check-item" id="checkNetwork">
+        <span class="check-dot"></span> Network
+      </div>
+    </div>
+
+    <button id="joinBtn" disabled onclick="joinInterview()">
+      Checking your setup...
+    </button>
+  </div>
+
+  <!-- ─── INTERVIEW ROOM ─────────────────────────────── -->
+  <div id="room" class="screen">
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <span class="title" id="roomTitle">AI Technical Interview</span>
+      <div class="timer" id="timer">45:00</div>
+      <span style="font-size:0.8rem; color: var(--text-muted)" id="topStatus">Connecting...</span>
+    </div>
+
+    <!-- Video grid -->
+    <div class="video-grid">
+
+      <!-- AI Interviewer tile -->
+      <div class="video-tile avatar-tile">
+        <div class="avatar-inner">
+          <div class="avatar-circle" id="avatarCircle">🤖</div>
+          <div class="avatar-name">Rachel — AI Interviewer</div>
+          <div class="avatar-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Connecting...</span>
+          </div>
+        </div>
+        <!-- AI transcript bubble -->
+        <div class="transcript-overlay">
+          <div class="transcript-bubble" id="aiTranscriptBubble"></div>
+        </div>
+        <div class="tile-label">AI Interviewer</div>
+      </div>
+
+      <!-- Candidate tile -->
+      <div class="video-tile candidate-tile">
+        <video id="candidateVideo" autoplay muted playsinline></video>
+        <!-- Candidate transcript bubble -->
+        <div class="transcript-overlay">
+          <div class="transcript-bubble" id="youTranscriptBubble"></div>
+        </div>
+        <div class="tile-label">You</div>
+      </div>
+
+      <!-- Code Editor tile (DSA mode only) -->
+      <div class="video-tile code-tile" id="codeTile">
+        <div class="code-toolbar">
+          <span class="toolbar-label">Code Editor</span>
+          <select id="langSelect" onchange="changeLanguage(this.value)">
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
+            <option value="typescript">TypeScript</option>
+            <option value="go">Go</option>
+          </select>
+        </div>
+        <div id="monacoContainer"></div>
+      </div>
+
+      <!-- Whiteboard tile (System Design mode only) -->
+      <div class="video-tile whiteboard-tile" id="whiteboardTile">
+        <div class="wb-toolbar">
+          <span class="toolbar-label">Whiteboard</span>
+          <div class="wb-separator"></div>
+          <button class="wb-tool-btn active" data-tool="select" onclick="setWbTool('select')" title="Select">&#9096;</button>
+          <button class="wb-tool-btn" data-tool="draw" onclick="setWbTool('draw')" title="Pen">&#9999;</button>
+          <button class="wb-tool-btn" data-tool="line" onclick="setWbTool('line')" title="Line">&#9135;</button>
+          <button class="wb-tool-btn" data-tool="arrow" onclick="setWbTool('arrow')" title="Arrow">&#10132;</button>
+          <button class="wb-tool-btn" data-tool="rect" onclick="setWbTool('rect')" title="Rectangle">&#9645;</button>
+          <button class="wb-tool-btn" data-tool="circle" onclick="setWbTool('circle')" title="Circle">&#9675;</button>
+          <button class="wb-tool-btn" data-tool="text" onclick="setWbTool('text')" title="Text">T</button>
+          <button class="wb-tool-btn" data-tool="eraser" onclick="setWbTool('eraser')" title="Eraser">&#9003;</button>
+          <div class="wb-separator"></div>
+          <button class="wb-color-btn active" data-color="#000000" onclick="setWbColor('#000000')" style="background:#000000;" title="Black"></button>
+          <button class="wb-color-btn" data-color="#0a84ff" onclick="setWbColor('#0a84ff')" style="background:#0a84ff;" title="Blue"></button>
+          <button class="wb-color-btn" data-color="#ff453a" onclick="setWbColor('#ff453a')" style="background:#ff453a;" title="Red"></button>
+          <button class="wb-color-btn" data-color="#30d158" onclick="setWbColor('#30d158')" style="background:#30d158;" title="Green"></button>
+          <button class="wb-color-btn" data-color="#ff9f0a" onclick="setWbColor('#ff9f0a')" style="background:#ff9f0a;" title="Orange"></button>
+          <button class="wb-color-btn" data-color="#bf5af2" onclick="setWbColor('#bf5af2')" style="background:#bf5af2;" title="Purple"></button>
+          <div class="wb-separator"></div>
+          <select class="wb-stroke-select" id="wbStrokeWidth" onchange="setWbStrokeWidth(this.value)">
+            <option value="2">Thin</option>
+            <option value="3" selected>Medium</option>
+            <option value="5">Thick</option>
+            <option value="8">Bold</option>
+          </select>
+          <div class="wb-separator"></div>
+          <button class="wb-tool-btn" onclick="wbUndo()" title="Undo">&#8630;</button>
+          <button class="wb-tool-btn" onclick="wbClear()" title="Clear All">&#128465;</button>
+        </div>
+        <canvas id="whiteboardCanvas"></canvas>
+      </div>
+
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="ctrl-btn" id="muteBtn" onclick="toggleMute()" title="Mute/Unmute">🎙️</button>
+      <button class="ctrl-btn" id="chatBtn" onclick="toggleChat()" title="Transcript">💬</button>
+      <button class="ctrl-btn end-call" onclick="endInterview()" title="End Interview">📵</button>
+    </div>
+
+    <!-- Conversation panel -->
+    <div class="conversation-panel" id="chatPanel">
+      <div class="panel-header">Transcript</div>
+      <div class="panel-messages" id="messages"></div>
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ─── STATE ────────────────────────────────────────
+    let ws = null;
+    let mediaStream = null;
+    let audioContext = null;
+    let processor = null;
+    let isMuted = false;
+    let interviewStartTime = null;
+    let timerInterval = null;
+    let playbackContext = null;
+    let audioQueue = [];
+    let isPlaying = false;
+    let DURATION_MINUTES = 45;
+
+    // Interview config from setup screen
+    let interviewConfig = {
+      role: 'SDE1',
+      jd: '',
+      interviewType: 'domain-technical',
+      durationMinutes: 45,
+      resumeText: '',
+    };
+
+    // Resume state
+    let parsedResumeText = '';
+
+    // Full transcript for evaluation (accumulated during interview)
+    let fullTranscript = [];
+
+    // ─── SETUP → LOBBY ──────────────────────────────
+    function goToLobby() {
+      interviewConfig = {
+        role: document.getElementById('roleSelect').value,
+        jd: document.getElementById('jdInput').value.trim(),
+        interviewType: document.getElementById('typeSelect').value,
+        durationMinutes: parseInt(document.getElementById('durationSelect').value),
+        resumeText: parsedResumeText,
+      };
+      DURATION_MINUTES = interviewConfig.durationMinutes;
+
+      document.getElementById('setup').classList.remove('active');
+      document.getElementById('lobby').classList.add('active');
+      setupLobby();
+    }
+
+    // ─── LOBBY SETUP ─────────────────────────────────
+    async function setupLobby() {
+      setCheck('checkNetwork', 'ok', 'Network');
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        });
+
+        // Show camera preview
+        const preview = document.getElementById('previewVideo');
+        preview.srcObject = mediaStream;
+        document.getElementById('cameraOverlay').style.display = 'none';
+
+        setCheck('checkCamera', 'ok', 'Camera ✓');
+        setCheck('checkMic', 'ok', 'Microphone ✓');
+
+        const joinBtn = document.getElementById('joinBtn');
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join Interview';
+
+      } catch (err) {
+        console.error('Media error:', err);
+        if (err.name === 'NotAllowedError') {
+          setCheck('checkCamera', 'fail', 'Camera blocked');
+          setCheck('checkMic', 'fail', 'Mic blocked');
+          showToast('Please allow camera & microphone access and refresh');
+        } else {
+          setCheck('checkCamera', 'fail', 'Camera error');
+          showToast(`Media error: ${err.message}`);
+        }
+      }
+    }
+
+    function setCheck(id, state, label) {
+      const el = document.getElementById(id);
+      el.className = `check-item ${state}`;
+      el.innerHTML = `<span class="check-dot"></span> ${label}`;
+    }
+
+    // ─── JOIN INTERVIEW ───────────────────────────────
+    function joinInterview() {
+      // Switch screens
+      document.getElementById('lobby').classList.remove('active');
+      document.getElementById('room').classList.add('active');
+
+      // Set room title
+      const typeLabels = { behavioral: 'Behavioral', dsa: 'DSA / Coding', 'system-design': 'System Design', 'domain-technical': 'Technical' };
+      document.getElementById('roomTitle').textContent =
+        `${interviewConfig.role} — ${typeLabels[interviewConfig.interviewType] || 'Interview'}`;
+
+      // Hook camera into the room video
+      const video = document.getElementById('candidateVideo');
+      video.srcObject = mediaStream;
+
+      // Start timer
+      interviewStartTime = Date.now();
+      timerInterval = setInterval(updateTimer, 1000);
+
+      // Set up audio pipeline
+      setupAudioPipeline();
+
+      // Initialize code editor if DSA interview
+      initCodeEditor();
+
+      // Initialize whiteboard if System Design interview
+      initWhiteboard();
+
+      // Connect WebSocket
+      connectWebSocket();
+    }
+
+    // ─── TIMER ────────────────────────────────────────
+    function updateTimer() {
+      const elapsed = Math.floor((Date.now() - interviewStartTime) / 1000);
+      const total = DURATION_MINUTES * 60;
+      const remaining = Math.max(0, total - elapsed);
+      const mins = Math.floor(remaining / 60);
+      const secs = remaining % 60;
+
+      const el = document.getElementById('timer');
+      el.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      if (remaining <= 300) el.className = 'timer warning';
+      if (remaining <= 60) el.className = 'timer critical';
+      if (remaining === 0) endInterview();
+    }
+
+    // ─── AUDIO PIPELINE ──────────────────────────────
+    function setupAudioPipeline() {
+      audioContext = new AudioContext({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      processor.onaudioprocess = (e) => {
+        if (isMuted || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+        const float32 = e.inputBuffer.getChannelData(0);
+        const int16 = new Int16Array(float32.length);
+        for (let i = 0; i < float32.length; i++) {
+          const s = Math.max(-1, Math.min(1, float32[i]));
+          int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        ws.send(int16.buffer);
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      playbackContext = new AudioContext({ sampleRate: 24000 });
+    }
+
+    // ─── WEBSOCKET ────────────────────────────────────
+    function connectWebSocket() {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${location.host}/ws`);
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = () => {
+        // Send interview config, then server starts the pipeline
+        ws.send(JSON.stringify({
+          type: 'start_interview',
+          config: interviewConfig,
+        }));
+        setAIState('thinking');
+        setTopStatus('Starting...');
+      };
+
+      ws.onmessage = async (event) => {
+        if (event.data instanceof ArrayBuffer) {
+          audioQueue.push(event.data);
+          if (!isPlaying) playNextAudio();
+          return;
+        }
+
+        const data = JSON.parse(event.data);
+
+        switch (data.type) {
+          case 'partial_transcript':
+            showYouBubble(data.text, true);
+            break;
+
+          case 'final_transcript':
+            showYouBubble(data.text, false);
+            addMessage('you', data.text);
+            setAIState('thinking');
+            fullTranscript.push({ speaker: 'candidate', text: data.text });
+            break;
+
+          case 'ai_response_text':
+            showAIBubble(data.text);
+            addMessage('ai', data.text);
+            fullTranscript.push({ speaker: 'interviewer', text: data.text });
+            break;
+
+          case 'ready':
+            // Server is ready, we already sent config in onopen
+            setTopStatus('Connected');
+            break;
+
+          case 'ai_response_complete':
+            // Will flip to listening after audio finishes
+            break;
+
+          case 'error':
+            showToast(`Error: ${data.message}`);
+            setAIState('idle');
+            break;
+        }
+      };
+
+      ws.onclose = () => {
+        setTopStatus('Disconnected');
+        setAIState('idle');
+      };
+
+      ws.onerror = (err) => {
+        console.error('WS error:', err);
+        showToast('Connection error');
+      };
+    }
+
+    // ─── AI STATE ─────────────────────────────────────
+    function setAIState(state) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      const avatar = document.getElementById('avatarCircle');
+
+      dot.className = `status-dot ${state}`;
+      avatar.className = `avatar-circle ${state}`;
+
+      const labels = {
+        idle: 'Idle',
+        listening: 'Listening...',
+        thinking: 'Thinking...',
+        speaking: 'Speaking...',
+      };
+      text.textContent = labels[state] || state;
+    }
+
+    function setTopStatus(text) {
+      document.getElementById('topStatus').textContent = text;
+    }
+
+    // ─── TRANSCRIPTS ─────────────────────────────────
+    function showYouBubble(text, isPartial) {
+      const el = document.getElementById('youTranscriptBubble');
+      el.textContent = isPartial ? text + '...' : text;
+      el.className = `transcript-bubble visible${isPartial ? ' partial' : ''}`;
+      if (!isPartial) setTimeout(() => el.classList.remove('visible'), 3000);
+    }
+
+    function showAIBubble(text) {
+      const el = document.getElementById('aiTranscriptBubble');
+      el.textContent = text;
+      el.className = 'transcript-bubble visible';
+      setTimeout(() => el.classList.remove('visible'), 8000);
+    }
+
+    function addMessage(speaker, text) {
+      const container = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = `msg ${speaker}`;
+      div.innerHTML = `<div class="msg-speaker">${speaker === 'ai' ? 'AI Interviewer' : 'You'}</div>${text}`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // ─── AUDIO PLAYBACK ──────────────────────────────
+    async function playNextAudio() {
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        setAIState('listening');
+        return;
+      }
+
+      isPlaying = true;
+      setAIState('speaking');
+      const audioData = audioQueue.shift();
+
+      try {
+        const int16 = new Int16Array(audioData);
+        const float32 = new Float32Array(int16.length);
+        for (let i = 0; i < int16.length; i++) {
+          float32[i] = int16[i] / 32768.0;
+        }
+
+        const buffer = playbackContext.createBuffer(1, float32.length, 24000);
+        buffer.getChannelData(0).set(float32);
+
+        const source = playbackContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(playbackContext.destination);
+        source.onended = () => playNextAudio();
+        source.start();
+      } catch (err) {
+        console.error('Playback error:', err);
+        playNextAudio();
+      }
+    }
+
+    // ─── CONTROLS ─────────────────────────────────────
+    function toggleMute() {
+      isMuted = !isMuted;
+      const btn = document.getElementById('muteBtn');
+      btn.textContent = isMuted ? '🔇' : '🎙️';
+      btn.className = isMuted ? 'ctrl-btn muted' : 'ctrl-btn';
+
+      // Mute/unmute the actual media track
+      mediaStream?.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
+
+      showToast(isMuted ? 'Microphone muted' : 'Microphone on');
+    }
+
+    function toggleChat() {
+      const panel = document.getElementById('chatPanel');
+      panel.classList.toggle('open');
+      const btn = document.getElementById('chatBtn');
+      btn.className = panel.classList.contains('open') ? 'ctrl-btn active' : 'ctrl-btn';
+    }
+
+    function endInterview() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'stop' }));
+        ws.close();
+      }
+
+      clearInterval(timerInterval);
+      mediaStream?.getTracks().forEach(t => t.stop());
+      processor?.disconnect();
+      audioContext?.close();
+      playbackContext?.close();
+
+      // Snapshot transcript before navigating
+      const transcriptSnapshot = [...fullTranscript];
+      const configSnapshot = { ...interviewConfig };
+
+      // Show generating screen
+      document.getElementById('room').innerHTML = `
+        <div id="evalScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:1.5rem;text-align:center;padding:2rem;background:var(--bg);">
+          <div class="eval-spinner"></div>
+          <h2 style="font-size:1.4rem;font-weight:700;">Generating Evaluation Report</h2>
+          <p style="color:#8e8e93;font-size:0.9rem;">Analysing ${transcriptSnapshot.length} conversation turns...</p>
+        </div>
+      `;
+
+      // Add spinner CSS dynamically
+      const style = document.createElement('style');
+      style.textContent = `
+        .eval-spinner {
+          width: 48px; height: 48px;
+          border: 4px solid #333;
+          border-top-color: #0a84ff;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `;
+      document.head.appendChild(style);
+
+      if (transcriptSnapshot.length < 2) {
+        renderEvalError('Not enough conversation to evaluate. The interview may have been too short.');
+        return;
+      }
+
+      fetch('/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: transcriptSnapshot, config: configSnapshot }),
+      })
+        .then(res => res.json())
+        .then(report => {
+          if (report.error) throw new Error(report.error);
+          renderEvalReport(report);
+        })
+        .catch(err => renderEvalError(err.message));
+    }
+
+    function renderEvalError(msg) {
+      document.getElementById('evalScreen').innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;text-align:center;padding:2rem;">
+          <div style="font-size:3rem">⚠️</div>
+          <h2>Evaluation Failed</h2>
+          <p style="color:#8e8e93;max-width:400px;">${msg}</p>
+          <button onclick="location.reload()" style="padding:0.7rem 2rem;background:#0a84ff;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.95rem;font-weight:600;">
+            Start New Interview
+          </button>
+        </div>
+      `;
+    }
+
+    function renderEvalReport(r) {
+      const RECOMMENDATION_COLORS = {
+        'Strong Hire': '#30d158',
+        'Hire': '#30d158',
+        'Lean No Hire': '#ffd60a',
+        'No Hire': '#ff453a',
+      };
+      const recColor = RECOMMENDATION_COLORS[r.recommendation] || '#8e8e93';
+
+      const typeLabels = {
+        behavioral: 'Behavioral',
+        dsa: 'DSA / Coding',
+        'system-design': 'System Design',
+        'domain-technical': 'Domain Technical',
+      };
+
+      // Score bars
+      const scoreBars = Object.entries(r.scores || {}).map(([label, s]) => {
+        const pct = ((s.score / 5) * 100).toFixed(0);
+        const barColor = s.score >= 4 ? '#30d158' : s.score >= 3 ? '#0a84ff' : '#ff453a';
+        return `
+          <div style="margin-bottom:1.1rem;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
+              <span style="font-size:0.85rem;font-weight:600;">${label}</span>
+              <span style="font-size:0.85rem;color:#8e8e93;">${s.score}/5</span>
+            </div>
+            <div style="background:#2c2c2e;border-radius:4px;height:6px;">
+              <div style="background:${barColor};width:${pct}%;height:100%;border-radius:4px;transition:width 0.8s ease;"></div>
+            </div>
+            <p style="font-size:0.75rem;color:#8e8e93;margin-top:0.3rem;">${s.notes}</p>
+          </div>
+        `;
+      }).join('');
+
+      // Strengths
+      const strengthList = (r.strengths || []).map(s =>
+        `<li style="padding:0.4rem 0;border-bottom:1px solid #2c2c2e;font-size:0.85rem;">✅ ${s}</li>`
+      ).join('');
+
+      // Concerns
+      const concernList = (r.concerns || []).map(c =>
+        `<li style="padding:0.4rem 0;border-bottom:1px solid #2c2c2e;font-size:0.85rem;">⚠️ ${c}</li>`
+      ).join('');
+
+      // Highlights
+      const highlightCards = (r.highlights || []).map(h => {
+        const labelColor = h.label.includes('Strong') || h.label.includes('Good') ? '#30d158' : h.label.includes('Red') ? '#ff453a' : '#ffd60a';
+        return `
+          <div style="background:#1c1c1e;border-radius:10px;padding:0.8rem 1rem;border-left:3px solid ${labelColor};">
+            <div style="font-size:0.7rem;color:${labelColor};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem;">${h.label}</div>
+            <div style="font-size:0.85rem;color:#e5e5e7;font-style:italic;">"${h.quote}"</div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('evalScreen').innerHTML = `
+        <div style="max-width:740px;width:100%;margin:0 auto;padding:2rem 1.5rem;overflow-y:auto;max-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;color:#f5f5f7;">
+
+          <!-- Header -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
+            <div>
+              <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:0.3rem;">Interview Evaluation</h1>
+              <p style="font-size:0.82rem;color:#8e8e93;">${r.interviewedFor} · ${typeLabels[r.interviewType] || r.interviewType} · ${new Date(r.generatedAt).toLocaleString()}</p>
+            </div>
+            <div style="background:${recColor}22;border:1.5px solid ${recColor};color:${recColor};font-weight:700;font-size:0.95rem;padding:0.5rem 1.1rem;border-radius:20px;white-space:nowrap;">
+              ${r.recommendation}
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div style="background:#1c1c1e;border-radius:12px;padding:1.2rem;margin-bottom:1.5rem;border:1px solid #2c2c2e;">
+            <h2 style="font-size:0.75rem;color:#8e8e93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.6rem;font-weight:600;">Summary</h2>
+            <p style="font-size:0.9rem;line-height:1.6;color:#e5e5e7;">${r.summary}</p>
+          </div>
+
+          <!-- Scores -->
+          <div style="background:#1c1c1e;border-radius:12px;padding:1.2rem;margin-bottom:1.5rem;border:1px solid #2c2c2e;">
+            <h2 style="font-size:0.75rem;color:#8e8e93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1rem;font-weight:600;">Competency Scores</h2>
+            ${scoreBars}
+          </div>
+
+          <!-- Strengths + Concerns side by side -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+            <div style="background:#1c1c1e;border-radius:12px;padding:1.2rem;border:1px solid #2c2c2e;">
+              <h2 style="font-size:0.75rem;color:#30d158;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.8rem;font-weight:600;">Strengths</h2>
+              <ul style="list-style:none;padding:0;margin:0;">${strengthList || '<li style="color:#8e8e93;font-size:0.85rem;">None identified</li>'}</ul>
+            </div>
+            <div style="background:#1c1c1e;border-radius:12px;padding:1.2rem;border:1px solid #2c2c2e;">
+              <h2 style="font-size:0.75rem;color:#ff453a;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.8rem;font-weight:600;">Concerns</h2>
+              <ul style="list-style:none;padding:0;margin:0;">${concernList || '<li style="color:#8e8e93;font-size:0.85rem;">None identified</li>'}</ul>
+            </div>
+          </div>
+
+          <!-- Highlights -->
+          ${highlightCards ? `
+          <div style="background:#1c1c1e;border-radius:12px;padding:1.2rem;margin-bottom:1.5rem;border:1px solid #2c2c2e;">
+            <h2 style="font-size:0.75rem;color:#8e8e93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.8rem;font-weight:600;">Notable Moments</h2>
+            <div style="display:flex;flex-direction:column;gap:0.7rem;">${highlightCards}</div>
+          </div>` : ''}
+
+          <!-- Actions -->
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+            <button onclick="location.reload()" style="padding:0.7rem 1.5rem;background:#0a84ff;color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;">
+              New Interview
+            </button>
+            <button onclick="window.print()" style="padding:0.7rem 1.5rem;background:#2c2c2e;color:#f5f5f7;border:1px solid #3a3a3c;border-radius:10px;cursor:pointer;font-size:0.9rem;font-weight:600;">
+              Print / Save PDF
+            </button>
+          </div>
+
+        </div>
+      `;
+    }
+
+    // ─── TOAST ────────────────────────────────────────
+    function showToast(msg, duration = 3000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
+    // ─── CODE EDITOR (MONACO) ──────────────────────
+    let monacoEditor = null;
+    let codeUpdateTimer = null;
+
+    const LANG_DEFAULTS = {
+      javascript: '// Write your solution here\nfunction solution(input) {\n  \n}\n',
+      python: '# Write your solution here\ndef solution(input):\n    pass\n',
+      java: '// Write your solution here\nclass Solution {\n    public static void main(String[] args) {\n        \n    }\n}\n',
+      cpp: '// Write your solution here\n#include <iostream>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}\n',
+      typescript: '// Write your solution here\nfunction solution(input: any): any {\n  \n}\n',
+      go: '// Write your solution here\npackage main\n\nfunc main() {\n    \n}\n',
+    };
+
+    function initCodeEditor() {
+      if (interviewConfig.interviewType !== 'dsa') return;
+
+      // Show code tile and switch to DSA layout
+      document.getElementById('codeTile').classList.add('visible');
+      document.querySelector('.video-grid').classList.add('dsa-mode');
+
+      // Load Monaco
+      require.config({
+        paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.50.0/min/vs' }
+      });
+
+      require(['vs/editor/editor.main'], function () {
+        monacoEditor = monaco.editor.create(
+          document.getElementById('monacoContainer'),
+          {
+            value: LANG_DEFAULTS['javascript'],
+            language: 'javascript',
+            theme: 'vs-dark',
+            fontSize: 14,
+            lineNumbers: 'on',
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            padding: { top: 10 },
+            suggestOnTriggerCharacters: true,
+            tabSize: 2,
+            wordWrap: 'on',
+          }
+        );
+
+        // Debounced code sync — send code to server every 2 seconds after typing stops
+        monacoEditor.onDidChangeModelContent(() => {
+          if (codeUpdateTimer) clearTimeout(codeUpdateTimer);
+          codeUpdateTimer = setTimeout(sendCodeUpdate, 2000);
+        });
+
+        console.log('[Editor] Monaco initialized');
+      });
+    }
+
+    function changeLanguage(lang) {
+      if (!monacoEditor) return;
+
+      const model = monacoEditor.getModel();
+      monaco.editor.setModelLanguage(model, lang === 'cpp' ? 'cpp' : lang);
+
+      // If editor is still on default template, swap to new language default
+      const currentCode = monacoEditor.getValue();
+      const isDefault = Object.values(LANG_DEFAULTS).some(
+        d => currentCode.trim() === d.trim()
+      );
+      if (isDefault || !currentCode.trim()) {
+        monacoEditor.setValue(LANG_DEFAULTS[lang] || '');
+      }
+
+      sendCodeUpdate();
+    }
+
+    function sendCodeUpdate() {
+      if (!monacoEditor || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+      const code = monacoEditor.getValue();
+      const lang = document.getElementById('langSelect').value;
+
+      ws.send(JSON.stringify({
+        type: 'code_update',
+        code: code,
+        language: lang,
+      }));
+    }
+
+    // ─── RESUME UPLOAD ────────────────────────────────
+    async function handleResumeUpload(file) {
+      if (!file) return;
+
+      document.getElementById('resumeDropZone').classList.remove('drag-over');
+      const status = document.getElementById('resumeStatus');
+      status.className = 'resume-status loading';
+      status.textContent = `Parsing ${file.name}...`;
+
+      const formData = new FormData();
+      formData.append('resume', file);
+
+      try {
+        const res = await fetch('/upload-resume', { method: 'POST', body: formData });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Upload failed');
+        }
+        const { text, wordCount } = await res.json();
+        parsedResumeText = text;
+
+        // Show the file name in the drop zone
+        document.querySelector('#resumeDropZone .drop-label').innerHTML =
+          `&#128196; <strong>${file.name}</strong>`;
+
+        status.className = 'resume-status success';
+        status.textContent = `Resume loaded — ${wordCount} words extracted. AI will personalise questions based on this.`;
+      } catch (err) {
+        parsedResumeText = '';
+        status.className = 'resume-status error';
+        status.textContent = `Failed: ${err.message}`;
+      }
+    }
+
+    function handleResumeDrop(event) {
+      event.preventDefault();
+      document.getElementById('resumeDropZone').classList.remove('drag-over');
+      const file = event.dataTransfer.files[0];
+      if (file) handleResumeUpload(file);
+    }
+
+    // ─── WHITEBOARD (FABRIC.JS) ──────────────────────
+    let fabricCanvas = null;
+    let wbCurrentTool = 'select';
+    let wbCurrentColor = '#000000';
+    let wbStrokeWidth = 3;
+    let wbHistory = [];
+    let wbIsDrawingShape = false;
+    let wbShapeStart = null;
+    let wbActiveShape = null;
+
+    function initWhiteboard() {
+      if (interviewConfig.interviewType !== 'system-design') return;
+
+      document.getElementById('whiteboardTile').classList.add('visible');
+      document.querySelector('.video-grid').classList.add('whiteboard-mode');
+
+      const container = document.getElementById('whiteboardTile');
+      const canvasEl = document.getElementById('whiteboardCanvas');
+
+      // Wait a frame for layout to settle, then size the canvas
+      requestAnimationFrame(() => {
+        const toolbar = container.querySelector('.wb-toolbar');
+        const w = container.clientWidth;
+        const h = container.clientHeight - toolbar.offsetHeight;
+
+        canvasEl.width = w;
+        canvasEl.height = h;
+
+        fabricCanvas = new fabric.Canvas('whiteboardCanvas', {
+          isDrawingMode: false,
+          backgroundColor: '#ffffff',
+          width: w,
+          height: h,
+        });
+
+        // Save initial state
+        wbSaveState();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+          const nw = container.clientWidth;
+          const nh = container.clientHeight - toolbar.offsetHeight;
+          fabricCanvas.setWidth(nw);
+          fabricCanvas.setHeight(nh);
+          fabricCanvas.renderAll();
+        });
+
+        // Shape drawing events
+        fabricCanvas.on('mouse:down', onWbMouseDown);
+        fabricCanvas.on('mouse:move', onWbMouseMove);
+        fabricCanvas.on('mouse:up', onWbMouseUp);
+
+        // Save state after each object modification
+        fabricCanvas.on('object:modified', wbSaveState);
+        fabricCanvas.on('path:created', wbSaveState);
+
+        console.log('[Whiteboard] Fabric.js initialized');
+      });
+    }
+
+    function setWbTool(tool) {
+      wbCurrentTool = tool;
+
+      // Update toolbar active states
+      document.querySelectorAll('.wb-tool-btn[data-tool]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tool === tool);
+      });
+
+      if (!fabricCanvas) return;
+
+      if (tool === 'draw') {
+        fabricCanvas.isDrawingMode = true;
+        fabricCanvas.freeDrawingBrush.color = wbCurrentColor;
+        fabricCanvas.freeDrawingBrush.width = wbStrokeWidth;
+        fabricCanvas.selection = false;
+      } else if (tool === 'eraser') {
+        fabricCanvas.isDrawingMode = true;
+        fabricCanvas.freeDrawingBrush.color = '#ffffff';
+        fabricCanvas.freeDrawingBrush.width = wbStrokeWidth * 4;
+        fabricCanvas.selection = false;
+      } else if (tool === 'select') {
+        fabricCanvas.isDrawingMode = false;
+        fabricCanvas.selection = true;
+      } else {
+        // Shape tools: line, arrow, rect, circle, text
+        fabricCanvas.isDrawingMode = false;
+        fabricCanvas.selection = false;
+      }
+    }
+
+    function setWbColor(color) {
+      wbCurrentColor = color;
+      document.querySelectorAll('.wb-color-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.color === color);
+      });
+      if (fabricCanvas && fabricCanvas.isDrawingMode && wbCurrentTool !== 'eraser') {
+        fabricCanvas.freeDrawingBrush.color = color;
+      }
+      // Update selected object color
+      const active = fabricCanvas?.getActiveObject();
+      if (active) {
+        if (active.type === 'i-text' || active.type === 'text') {
+          active.set('fill', color);
+        } else {
+          active.set('stroke', color);
+        }
+        fabricCanvas.renderAll();
+      }
+    }
+
+    function setWbStrokeWidth(val) {
+      wbStrokeWidth = parseInt(val);
+      if (fabricCanvas && fabricCanvas.isDrawingMode) {
+        fabricCanvas.freeDrawingBrush.width = wbCurrentTool === 'eraser' ? wbStrokeWidth * 4 : wbStrokeWidth;
+      }
+    }
+
+    function onWbMouseDown(opt) {
+      if (['select', 'draw', 'eraser'].includes(wbCurrentTool)) return;
+
+      const pointer = fabricCanvas.getPointer(opt.e);
+      wbIsDrawingShape = true;
+      wbShapeStart = { x: pointer.x, y: pointer.y };
+
+      if (wbCurrentTool === 'text') {
+        const text = new fabric.IText('Type here', {
+          left: pointer.x,
+          top: pointer.y,
+          fontSize: 16 + wbStrokeWidth * 2,
+          fill: wbCurrentColor,
+          fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+          editable: true,
+        });
+        fabricCanvas.add(text);
+        fabricCanvas.setActiveObject(text);
+        text.enterEditing();
+        wbIsDrawingShape = false;
+        wbSaveState();
+        return;
+      }
+
+      const shapeOpts = {
+        left: pointer.x,
+        top: pointer.y,
+        stroke: wbCurrentColor,
+        strokeWidth: wbStrokeWidth,
+        fill: 'transparent',
+        selectable: false,
+        evented: false,
+      };
+
+      if (wbCurrentTool === 'rect') {
+        wbActiveShape = new fabric.Rect({ ...shapeOpts, width: 0, height: 0 });
+      } else if (wbCurrentTool === 'circle') {
+        wbActiveShape = new fabric.Ellipse({ ...shapeOpts, rx: 0, ry: 0 });
+      } else if (wbCurrentTool === 'line' || wbCurrentTool === 'arrow') {
+        wbActiveShape = new fabric.Line(
+          [pointer.x, pointer.y, pointer.x, pointer.y],
+          { ...shapeOpts, left: undefined, top: undefined }
+        );
+      }
+
+      if (wbActiveShape) {
+        fabricCanvas.add(wbActiveShape);
+      }
+    }
+
+    function onWbMouseMove(opt) {
+      if (!wbIsDrawingShape || !wbActiveShape) return;
+
+      const pointer = fabricCanvas.getPointer(opt.e);
+      const sx = wbShapeStart.x;
+      const sy = wbShapeStart.y;
+
+      if (wbCurrentTool === 'rect') {
+        const left = Math.min(sx, pointer.x);
+        const top = Math.min(sy, pointer.y);
+        wbActiveShape.set({
+          left, top,
+          width: Math.abs(pointer.x - sx),
+          height: Math.abs(pointer.y - sy),
+        });
+      } else if (wbCurrentTool === 'circle') {
+        const left = Math.min(sx, pointer.x);
+        const top = Math.min(sy, pointer.y);
+        wbActiveShape.set({
+          left, top,
+          rx: Math.abs(pointer.x - sx) / 2,
+          ry: Math.abs(pointer.y - sy) / 2,
+        });
+      } else if (wbCurrentTool === 'line' || wbCurrentTool === 'arrow') {
+        wbActiveShape.set({ x2: pointer.x, y2: pointer.y });
+      }
+
+      fabricCanvas.renderAll();
+    }
+
+    function onWbMouseUp(opt) {
+      if (!wbIsDrawingShape || !wbActiveShape) return;
+
+      // For arrows, add an arrowhead
+      if (wbCurrentTool === 'arrow') {
+        const x1 = wbActiveShape.x1, y1 = wbActiveShape.y1;
+        const x2 = wbActiveShape.x2, y2 = wbActiveShape.y2;
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const headLen = 12 + wbStrokeWidth * 2;
+
+        const head = new fabric.Polyline([
+          { x: x2 - headLen * Math.cos(angle - Math.PI / 6), y: y2 - headLen * Math.sin(angle - Math.PI / 6) },
+          { x: x2, y: y2 },
+          { x: x2 - headLen * Math.cos(angle + Math.PI / 6), y: y2 - headLen * Math.sin(angle + Math.PI / 6) },
+        ], {
+          stroke: wbCurrentColor,
+          strokeWidth: wbStrokeWidth,
+          fill: 'transparent',
+          selectable: false,
+          evented: false,
+        });
+
+        // Group line + arrowhead
+        const group = new fabric.Group([wbActiveShape, head], {
+          selectable: true,
+          evented: true,
+        });
+        fabricCanvas.remove(wbActiveShape);
+        fabricCanvas.add(group);
+      } else {
+        wbActiveShape.set({ selectable: true, evented: true });
+      }
+
+      wbIsDrawingShape = false;
+      wbActiveShape = null;
+      fabricCanvas.renderAll();
+      wbSaveState();
+    }
+
+    function wbSaveState() {
+      if (!fabricCanvas) return;
+      wbHistory.push(fabricCanvas.toJSON());
+      // Keep history under 50 entries
+      if (wbHistory.length > 50) wbHistory.shift();
+    }
+
+    function wbUndo() {
+      if (!fabricCanvas || wbHistory.length <= 1) return;
+      wbHistory.pop(); // Remove current state
+      const prev = wbHistory[wbHistory.length - 1];
+      fabricCanvas.loadFromJSON(prev, () => {
+        fabricCanvas.renderAll();
+      });
+    }
+
+    function wbClear() {
+      if (!fabricCanvas) return;
+      if (!confirm('Clear the entire whiteboard?')) return;
+      fabricCanvas.clear();
+      fabricCanvas.setBackgroundColor('#ffffff', fabricCanvas.renderAll.bind(fabricCanvas));
+      wbSaveState();
+    }
+
+    // ─── INIT ─────────────────────────────────────────
+    // If this page was opened via an interview link, config is pre-set and lobby is already active.
+    // Just initialise the lobby (camera checks etc).
+    if (window.__INTERVIEW_CONFIG__) {
+      interviewConfig = { ...window.__INTERVIEW_CONFIG__, resumeText: '' };
+      DURATION_MINUTES = interviewConfig.durationMinutes;
+      setupLobby();
+    }
+  </script>
+</body>
+</html>

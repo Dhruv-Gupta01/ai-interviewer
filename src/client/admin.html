@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Interview — Admin</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f0f0f; --surface: #1c1c1e; --surface2: #2c2c2e; --border: #3a3a3c;
+      --text: #f5f5f7; --text-muted: #8e8e93; --accent: #0a84ff;
+      --green: #30d158; --red: #ff453a; --yellow: #ffd60a;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .nav-brand { font-weight: 700; font-size: 1rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .nav-right a {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-right a:hover { color: var(--text); }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .page-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .page-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 2rem; }
+
+    .grid { display: grid; grid-template-columns: 380px 1fr; gap: 2rem; align-items: start; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1.2rem;
+    }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 1rem; }
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      color: var(--text);
+      font-size: 0.875rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus { border-color: var(--accent); }
+    .field textarea { min-height: 90px; resize: vertical; }
+    .field select option { background: #2c2c2e; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-top: 0.5rem;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── GENERATED LINK RESULT ── */
+    .link-result {
+      display: none;
+      margin-top: 1rem;
+      background: #0a1a0a;
+      border: 1px solid var(--green);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .link-result.visible { display: block; }
+    .link-result .link-label {
+      font-size: 0.72rem;
+      color: var(--green);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+    .link-result .link-url {
+      font-size: 0.8rem;
+      color: #e5e5e7;
+      word-break: break-all;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: #1a2a1a;
+      padding: 0.5rem 0.7rem;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid #2a4a2a;
+    }
+    .link-result .copy-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+    }
+
+    /* ── LINKS TABLE ── */
+    .links-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .link-row {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .link-row .meta { flex: 1; min-width: 0; }
+    .link-row .link-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 0.25rem;
+    }
+    .link-row .link-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .link-row .actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .badge.active   { background: #0a2a0a; color: var(--green); border: 1px solid var(--green); }
+    .badge.used     { background: #1a1a1a; color: var(--text-muted); border: 1px solid var(--border); }
+    .badge.expired  { background: #2a0a00; color: var(--red); border: 1px solid var(--red); }
+
+    .icon-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 7px;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .icon-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">AI <span>Interviewer</span> · Admin</div>
+  <div class="nav-right">
+    <a onclick="logout()">Sign out</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-title">Interview Links</div>
+  <div class="page-sub">Create shareable links for candidates. Each link opens directly into the interview lobby.</div>
+
+  <div class="grid">
+
+    <!-- Create link form -->
+    <div class="card">
+      <div class="card-title">Create New Link</div>
+
+      <div class="field">
+        <label>Label <span style="font-weight:400;color:#666;">(internal name)</span></label>
+        <input type="text" id="labelInput" placeholder="e.g. John Doe — SDE2 Round 1" />
+      </div>
+
+      <div class="field">
+        <label>Role</label>
+        <select id="roleSelect">
+          <option value="Intern">Intern</option>
+          <option value="SDE1" selected>SDE1 — Junior Engineer</option>
+          <option value="SDE2">SDE2 — Senior Engineer</option>
+          <option value="Staff">Staff Engineer</option>
+          <option value="Lead">Tech Lead</option>
+          <option value="QA">QA Engineer</option>
+          <option value="SDET">SDET</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Interview Type</label>
+          <select id="typeSelect">
+            <option value="behavioral">Behavioral / HR</option>
+            <option value="dsa">DSA / Coding</option>
+            <option value="system-design">System Design</option>
+            <option value="domain-technical" selected>Domain Technical</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Duration</label>
+          <select id="durationSelect">
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="45" selected>45 min</option>
+            <option value="60">60 min</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Job Description <span style="font-weight:400;color:#666;">(optional)</span></label>
+        <textarea id="jdInput" placeholder="Paste the JD here..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Link Expiry</label>
+        <select id="ttlSelect">
+          <option value="24">24 hours</option>
+          <option value="48">48 hours</option>
+          <option value="72" selected>3 days</option>
+          <option value="168">1 week</option>
+        </select>
+      </div>
+
+      <button class="btn" id="createBtn" onclick="createLink()">Generate Interview Link</button>
+
+      <div class="link-result" id="linkResult">
+        <div class="link-label">Link Ready — Share with candidate</div>
+        <div class="link-url" id="linkUrl" onclick="copyLink()"></div>
+        <div class="copy-hint">Click URL to copy</div>
+      </div>
+    </div>
+
+    <!-- Links list -->
+    <div>
+      <div class="card-title" style="padding: 0 0.2rem 0.8rem;">Active Links</div>
+      <div class="links-list" id="linksList">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let generatedUrl = '';
+
+  async function createLink() {
+    const label = document.getElementById('labelInput').value.trim() || 'Unnamed Interview';
+    const config = {
+      role: document.getElementById('roleSelect').value,
+      jd: document.getElementById('jdInput').value.trim(),
+      interviewType: document.getElementById('typeSelect').value,
+      durationMinutes: parseInt(document.getElementById('durationSelect').value),
+    };
+    const ttlHours = parseInt(document.getElementById('ttlSelect').value);
+
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+
+    try {
+      const res = await fetch('/api/links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config, label, ttlHours }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      generatedUrl = `${location.origin}/i/${data.token}`;
+      document.getElementById('linkUrl').textContent = generatedUrl;
+      document.getElementById('linkResult').classList.add('visible');
+      loadLinks();
+    } catch (err) {
+      alert('Failed to create link: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Generate Interview Link';
+    }
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(generatedUrl).then(() => {
+      document.querySelector('.copy-hint').textContent = '✓ Copied to clipboard!';
+      setTimeout(() => document.querySelector('.copy-hint').textContent = 'Click URL to copy', 2000);
+    });
+  }
+
+  async function loadLinks() {
+    try {
+      const res = await fetch('/api/links');
+      const links = await res.json();
+      renderLinks(links);
+    } catch {
+      document.getElementById('linksList').innerHTML = '<div class="empty-state">Failed to load links</div>';
+    }
+  }
+
+  function renderLinks(links) {
+    const container = document.getElementById('linksList');
+    if (!links.length) {
+      container.innerHTML = '<div class="empty-state">No links yet — create one to get started</div>';
+      return;
+    }
+
+    const typeLabels = { behavioral: 'Behavioral', dsa: 'DSA', 'system-design': 'System Design', 'domain-technical': 'Domain Technical' };
+    const now = Math.floor(Date.now() / 1000);
+
+    container.innerHTML = links.map(link => {
+      const isExpired = link.expiresAt < now;
+      const isUsed = !!link.usedAt;
+      const status = isExpired ? 'expired' : isUsed ? 'used' : 'active';
+      const statusLabel = isExpired ? 'Expired' : isUsed ? 'Used' : 'Active';
+      const expiryStr = isExpired
+        ? 'Expired ' + timeAgo(link.expiresAt)
+        : 'Expires ' + timeAgo(link.expiresAt, true);
+      const url = `${location.origin}/i/${link.token}`;
+
+      return `
+        <div class="link-row">
+          <div class="meta">
+            <div class="link-name">${link.label}</div>
+            <div class="link-sub">${link.config.role} · ${typeLabels[link.config.interviewType] || link.config.interviewType} · ${link.config.durationMinutes}min · ${expiryStr}</div>
+          </div>
+          <div class="actions">
+            <span class="badge ${status}">${statusLabel}</span>
+            ${status === 'active' ? `<button class="icon-btn" onclick="copyUrl('${url}', this)">Copy</button>` : ''}
+            <button class="icon-btn danger" onclick="deleteLink('${link.token}')">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function deleteLink(token) {
+    if (!confirm('Delete this link?')) return;
+    await fetch(`/api/links/${token}`, { method: 'DELETE' });
+    loadLinks();
+  }
+
+  function copyUrl(url, btn) {
+    navigator.clipboard.writeText(url).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  }
+
+  function timeAgo(unixTs, future = false) {
+    const diff = Math.abs(Math.floor(Date.now() / 1000) - unixTs);
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ' + (future ? '' : 'ago');
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ' + (future ? '' : 'ago');
+    return Math.floor(diff / 86400) + 'd ' + (future ? '' : 'ago');
+  }
+
+  async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+  }
+
+  loadLinks();
+</script>
+</body>
+</html>
