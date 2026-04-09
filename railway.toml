@@ -3,6 +3,4 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "bun run src/server/index.ts"
-healthcheckPath = "/"
-healthcheckTimeout = 120
 restartPolicyType = "on_failure"
